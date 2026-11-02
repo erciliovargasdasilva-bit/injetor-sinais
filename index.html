@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#13202B">
+<title>Injetor de sinais (Bluetooth)</title>
+<style>
+:root{
+  --bg:#E4E9ED;--surf:#fff;--ink:#13202B;--mute:#586977;--line:#CBD4DB;--soft:#EEF2F5;
+  --go:#0B7A5F;--stop:#B3341F;
+  --hall:#1565C0;--fase:#C2410C;--vrp:#6B46C1;--vrn:#0E7490;
+  --num:"Bahnschrift","DIN Alternate","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:3px solid #1565C0;outline-offset:2px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 16px;background:var(--surf);border-bottom:1px solid var(--line)}
+h1{margin:0;font:700 22px/1.1 var(--num);letter-spacing:.2px}
+.link{display:inline-block;margin-top:2px;font-size:13px;color:var(--mute)}
+.link::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--go)}
+.link.off{color:var(--stop)}.link.off::before{background:var(--stop)}
+#go{min-width:150px;padding:13px 20px;border:0;border-radius:8px;background:var(--go);color:#fff;font:700 18px var(--num)}
+#go[aria-pressed=true]{background:var(--stop)}
+main{max-width:1180px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.card{min-width:0;background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:16px}
+.conectar{max-width:520px;margin:8vh auto 0}
+.conectar h2{margin:0 0 6px;font:700 26px/1.1 var(--num)}
+.conectar p{margin:6px 0;color:var(--mute)}
+#bt-conectar{margin-top:14px;width:100%;padding:15px;border:0;border-radius:8px;background:var(--ink);color:#fff;font:700 18px var(--num)}
+#bt-todos{margin-top:10px;width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-weight:600}
+.erro{margin-top:12px;padding:10px 12px;border-radius:8px;background:#FBE9E5;color:#7A2415;font-size:14px}
+.erro[hidden]{display:none}
+.aviso{padding:10px 12px;border-radius:8px;background:#FFF4D6;color:#5C4400;font-size:14px}
+.aviso[hidden]{display:none}
+.topo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.topo h2{margin:0;font:700 26px/1.1 var(--num)}
+.topo a{font-size:14px;color:var(--hall)}
+.meta{margin:4px 0 0;font-size:14px;color:var(--mute)}
+.rpm{display:flex;align-items:baseline;gap:8px;margin:14px 0 6px}
+.rpm b{font:700 72px/1 var(--num);font-variant-numeric:tabular-nums}
+.rpm span{font:600 20px var(--num);color:var(--mute)}
+.ajuste{display:flex;align-items:center;gap:10px}
+.ajuste input[type=range]{flex:1;height:40px;accent-color:var(--ink)}
+.bt{min-width:56px;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-weight:600}
+.bt:active{background:var(--line)}
+.pres{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pres .bt{min-width:0;height:38px;font-size:14px}
+.pres .bt.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.param{display:flex;gap:24px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.param[hidden]{display:none}
+.step{display:flex;align-items:center;gap:8px}
+.step label{font-size:14px;color:var(--mute);margin-right:4px}
+.step output{min-width:36px;text-align:center;font:700 24px var(--num);font-variant-numeric:tabular-nums}
+.osc{display:flex;margin-top:16px;border:1px solid var(--line);border-radius:8px;background:var(--soft);overflow:hidden}
+#rot{flex:none;width:58px;border-right:1px solid var(--line);background:var(--surf)}
+#rot div{display:flex;align-items:center;padding-left:8px;font:700 14px var(--num)}
+#scroll{flex:1;overflow-x:auto;overscroll-behavior-x:contain}
+#cv{display:block}
+.dica{margin:8px 0 0;font-size:13px;color:var(--mute)}
+.lista h3{margin:16px 0 6px;font:700 16px var(--num);color:var(--mute)}
+.lista h3:first-of-type{margin-top:12px}
+.lista ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lista li button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:46px;padding:8px 12px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surf);text-align:left;font-weight:600}
+.lista li button small{font-weight:400;color:var(--mute)}
+.lista li button.sel{background:var(--ink);border-color:var(--ink);color:#fff}
+.lista li button.sel small{color:#C9D3DB}
+#busca{width:100%;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surf)}
+.vazio{color:var(--mute)}
+[hidden]{display:none!important}
+@media(min-width:960px){
+  main.on{grid-template-columns:340px minmax(0,1fr);align-items:start}
+  .lista{order:-1;position:sticky;top:84px;max-height:calc(100vh - 104px);overflow:auto}
+  .topo a{display:none}
+}
+@media(prefers-reduced-motion:no-preference){
+  #go[aria-pressed=true]::before{content:"";display:inline-block;width:10px;height:10px;margin-right:10px;border-radius:50%;background:#fff;animation:p 1s ease-in-out infinite}
+  @keyframes p{50%{opacity:.25}}
+}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Injetor de sinais</h1><span id="link" class="link off">desconectado</span></div>
+  <button id="go" aria-pressed="false" disabled>Gerar sinal</button>
+</header>
+<main id="main">
+  <section class="card conectar" id="conectar">
+    <h2>Conectar ao injetor</h2>
+    <p>Ligue o injetor e mantenha o Bluetooth do celular ativado. Toque no botão e escolha <b>Injetor-Sinais</b> na lista.</p>
+    <button id="bt-conectar">Procurar injetor</button>
+    <button id="bt-todos" class="sec">Não achou? Mostrar todos os dispositivos</button>
+    <div class="erro" id="erro" hidden></div>
+  </section>
+  <section class="card painel" id="painel" hidden>
+    <div class="aviso" id="aviso" hidden></div>
+    <div class="topo">
+      <div><h2 id="nome">—</h2><p class="meta" id="meta"></p></div>
+      <a href="#lista">Trocar sinal</a>
+    </div>
+    <div class="rpm"><b id="rpmv">0</b><span>rpm</span></div>
+    <div class="ajuste">
+      <button class="bt" id="menos" aria-label="Diminuir 50 rpm">−50</button>
+      <input id="rpm" type="range" min="100" max="6000" step="10" aria-label="Rotação do motor">
+      <button class="bt" id="mais" aria-label="Aumentar 50 rpm">+50</button>
+    </div>
+    <div class="pres" id="pres"></div>
+    <div class="param" id="param" hidden></div>
+    <div class="osc"><div id="rot"></div><div id="scroll"><canvas id="cv"></canvas></div></div>
+    <p class="dica" id="dica"></p>
+  </section>
+  <section class="card lista" id="lista" hidden>
+    <input id="busca" type="search" placeholder="Buscar veículo ou roda fônica" aria-label="Buscar sinal">
+    <div id="itens"></div>
+  </section>
+</main>
+<script>
+// Tabelas dos veículos com fase (geradas por ferramentas/gerar_app.py): n=nome, t=ticks, v=voltas, c=canais, d=1 dígito hex por tick
+const FASE=[{"n":"Frontier","t":354,"v":2,"c":3,"d":"332332332332332332332332332332332332332332332332332332332332332332332332332332330110112332332332332332332332332332332332332332332332332332332332332332332332332332333333111111333332332332332332332332332332332332332332332332332332332332332332332332332332332330110112332332332332332332332332332332332332332332332332332332332332332332330110112333333111111333"},{"n":"Amarok","t":240,"v":4,"c":3,"d":"232323010101010101010101032323232323232323232323232323232233232323232323232101010101232323232323232323232323232323232233232323232301010101010101232323232323232301010101010101010011010101010101232323210101232323232323232323232323232323232233"},{"n":"Brava","t":84,"v":4,"c":3,"d":"322322222232222200000100100000010000022000100100000010000022222322322222232222200222"},{"n":"L200","t":44,"v":1,"c":3,"d":"12232020001222202000012222020000122220200000"},{"n":"Civic 1.6","t":18,"v":1,"c":3,"d":"233233233233233211"},{"n":"Gol G5 1.0 8v","t":238,"v":2,"c":3,"d":"1010101010101010101010101232323232321010101010101032323232323232323232323232323232323232323232321010101010101010122333232323232323232323232323232323232323010101010101010101010101010101010101010101010101010101010101010101010101010101001110"},{"n":"Gol G6 1.0 12v","t":357,"v":3,"c":3,"d":"101010101010101010101010101232323232323010101010101010103232323232323232323232323232323232323232323210101010101010233323232323232323232323232323232323232323232101010101010101010101010101010101010101010101010123232323232101010101010100111010101010101010101010101010123232323232301010101010101232321010101010101010101010101010101232323232321010101010101001110"},{"n":"Onix 1.0","t":238,"v":2,"c":3,"d":"1010323232323230101010101010101010101010101010101010101010101012323232323210101010103232323232323232323232323232323222232323232323232321010101010323232323232323232323232323232323232323232323232323210101010101010101010101010101010101010000"},{"n":"Agile 1.4","t":357,"v":3,"c":3,"d":"323232323232323010101010101012323232323232323232323232323232323232323232323210101010101010101010101010101010101010100001010123232323210101010101010101010101010101010101010101010101010323232323210101010101010323232323232323232323232323222232323232323232301010101012323232323210101010101010101010101010123232323232101010101010103232323232323232323232323232222"},{"n":"Linea 1.8","t":238,"v":2,"c":3,"d":"1010101010101010101010101010101010101010101010101010101010101010101010101010103232323232323232323232323232323232322333232323232323232323232323232323232323232323232323232323232323232323232323232323210101010101010101010101010101010101001110"},{"n":"March 1.0","t":148,"v":2,"c":3,"d":"1010101010323230101000000101010101010101010101010101010101012323210100000010101010101010101010000001010101010123232101230101010101010101010101000000"},{"n":"Sentra 2.0","t":270,"v":5,"c":3,"d":"011033233011011011011011011011033233233233211011333331011033233011013233231011011011013233233233211011133331011011011011011011011011011011013233233233211011111111011011011011011011011011011011013233233233211011111111011011011011011011011011011011013233233233211011133331"},{"n":"Ford Ka 1.0","t":734,"v":2,"c":3,"d":"23333323333323333323333323333323333323333323333323333323333323333323333301111101111101111101111101111101111101111101111101133323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333301111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111111111111111111111110111110111110111110111110111110111112333332333332333332333332333332333330111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111110111132333332333332333332333332333332333310111110111110111110111110111110111110111110111110333332333332333332333332333332333332333332333333333333333333333333"},{"n":"Tucson 2.0","t":244,"v":2,"c":3,"d":"2323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323210101010111111101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010323232323333333"},{"n":"Lancer 2.0","t":140,"v":2,"c":3,"d":"10101010101010101010101232323232322323232323232323232323232323232322223232323232323232323232301010101010010101010101010101010101010101010000"},{"n":"Evoque 2.0","t":238,"v":2,"c":3,"d":"1010101010101010101012323232323232323010101232323232323232323232323232323232323232323232323232321010101010103232323222232323232323232323232323232323232323230101010101010101010101010101010101010101010123232323232323230101010101010101010000"},{"n":"PLD","t":218,"v":2,"c":3,"d":"10101001001001001221001001001001001221001001001001001221001001001001001221001001001001001221001001001001001221010122100100100122100100100100100122100100100100100122100100100100100122100100100100100122100100100100100122"},{"n":"Polo 1.6","t":240,"v":2,"c":3,"d":"010101010101010101010101032323232323010101010101010323232323232323232323232323232323232323232321010101010101010123222333232323232323232323232323232323232301010101010101010101010101010101010101010101010101012323232323010101010101010101000111"},{"n":"Honda Fit","t":120,"v":2,"c":3,"d":"101223222232222322223200012222322223222232222322223200012222323223222232222322223000012222322223222232222322223200012222"},{"n":"Dodge Ram 5.9","t":238,"v":2,"c":3,"d":"3232101012323232323232321010123232323232323210101232323232323232101012323232323232321010123232323232323210101232323222232321010123232323232323210101232321010123232101012323232323232321010123232323232323210101232323232323232101012323232222"},{"n":"Saveiro 1.6 16v","t":238,"v":2,"c":3,"d":"0101010101010101010101010103232323232321010101010101010323232323232323232323232323232323232323232321010101010101010233323232323232323232323232323232323232323210101010101010101010101010101010101010101010101012323232323210101010101010100111"},{"n":"Fusion 2.0","t":734,"v":2,"c":3,"d":"23333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323333323111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101111101333323333323333323333323333323333323333323333323111101111101111101111101111101111101111101111101111101111101111111111111111111111110111110111110111110111110111110111110111110111110111110133332333332333332333332333332333332333332333310111110111110111110111110111110111110111132333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333332333310111110111110111110111110111110111132333332333332333332333332333333333333333333333333"}];
+
+const SVC='4a5e0001-7c2b-4f1e-9a3d-1b8c6d2e5f70',CMD='4a5e0002-7c2b-4f1e-9a3d-1b8c6d2e5f70',EST='4a5e0003-7c2b-4f1e-9a3d-1b8c6d2e5f70';
+const RODAS=[['60-2',60,2],['44-4',44,4],['36-1',36,1],['36-2',36,2]];
+const LISTA=[].concat(
+  RODAS.map((r,i)=>({i:i,n:r[0],g:0,v:1,p:0})),
+  [{i:4,n:'Personalizada',g:0,v:1,p:1},{i:5,n:'Distribuidor (só Hall)',g:0,v:1,p:1}],
+  FASE.map((s,k)=>({i:6+k,n:s.n,g:1,v:s.v,p:0})));
+const CAN=[[1,'Hall','--hall'],[2,'Fase','--fase'],[4,'VR+','--vrp'],[8,'VR−','--vrn']];
+const PRES=[250,800,2000,3500,5000];
+const $=s=>document.querySelector(s);
+const lim=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+let dev=null,chCmd=null,chEst=null,est=null,forma=null,formaKey='',pend={},tmr=null,enviando=false;
+
+// ---------- formas de onda (mesma regra do firmware) ----------
+function roda(d,f,saidas){const o=[];for(let k=0;k<2*d;k++){let v=0;if(k<2*(d-f))v=(k%2===0)?(saidas&5):(saidas&8);o.push(v)}return o}
+function formaLocal(id,d,f,p){
+  let t,c,v=1;
+  if(id<4){t=roda(RODAS[id][1],RODAS[id][2],13);c=13}
+  else if(id===4){const dd=lim(d,1,60);t=roda(dd,lim(f,0,dd-1),13);c=13}
+  else if(id===5){t=roda(lim(p,1,60),0,1);c=1}
+  else{const s=FASE[id-6];return{t:s.t,v:s.v,c:s.c,d:s.d}}
+  return{t:t.length,v:v,c:c,d:t.map(x=>x.toString(16)).join('')};
+}
+
+// ---------- Bluetooth ----------
+function setLink(ok){const l=$('#link');l.textContent=ok?'conectado':'desconectado';l.classList.toggle('off',!ok);$('#go').disabled=!ok}
+function mostrarErro(m){const e=$('#erro');e.textContent=m;e.hidden=!m}
+function lerEstado(dv){return{id:dv.getUint8(0),rpm:dv.getUint16(1,true),ativo:!!dv.getUint8(3),dentes:dv.getUint8(4),folgas:dv.getUint8(5),pulsos:dv.getUint8(6),
+  voltas:dv.getUint8(7),ticks:dv.getUint16(8,true),rpmMax:dv.getUint16(10,true),total:dv.getUint8(12)}}
+function pacote(p){
+  const b=new Uint8Array(8).fill(0xFF);b[0]=1;
+  if(p.id!==undefined)b[1]=+p.id;
+  if(p.rpm!==undefined){const r=lim(Math.round(+p.rpm),0,65534);b[2]=r&255;b[3]=r>>8}
+  if(p.ativo!==undefined)b[4]=+p.ativo?1:0;
+  if(p.dentes!==undefined)b[5]=+p.dentes;
+  if(p.folgas!==undefined)b[6]=+p.folgas;
+  if(p.pulsos!==undefined)b[7]=+p.pulsos;
+  return b;
+}
+async function conectar(todos){
+  mostrarErro('');
+  if(!navigator.bluetooth){mostrarErro('Este navegador não tem Bluetooth Web. No Android use o Chrome; no iPhone use o aplicativo gratuito Bluefy.');return}
+  try{
+    if(!dev)dev=await navigator.bluetooth.requestDevice(todos
+      ?{acceptAllDevices:true,optionalServices:[SVC]}
+      :{filters:[{services:[SVC]},{namePrefix:'Injetor'}],optionalServices:[SVC]});
+    dev.removeEventListener('gattserverdisconnected',aoDesconectar);
+    dev.addEventListener('gattserverdisconnected',aoDesconectar);
+    await ligar();
+  }catch(e){
+    const m=(e&&e.message)?e.message:String(e);
+    if(/service/i.test(m))mostrarErro('Esse dispositivo não tem o serviço do injetor. Escolha o Injetor-Sinais e confira se o ESP32 está com o firmware Bluetooth. ('+m+')');
+    else if(e&&e.name==='NotFoundError')mostrarErro('Nenhum dispositivo selecionado. Se o injetor não apareceu na lista, toque em "Mostrar todos os dispositivos".');
+    else mostrarErro('Não foi possível conectar: '+m);
+    if(dev&&!(dev.gatt&&dev.gatt.connected))dev=null;
+  }
+}
+async function ligar(){
+  const srv=await dev.gatt.connect();
+  const svc=await srv.getPrimaryService(SVC);
+  chCmd=await svc.getCharacteristic(CMD);
+  chEst=await svc.getCharacteristic(EST);
+  chEst.removeEventListener('characteristicvaluechanged',aoEstado);
+  chEst.addEventListener('characteristicvaluechanged',aoEstado);
+  await chEst.startNotifications();
+  aplicarEstado(await chEst.readValue());
+  setLink(true);
+  $('#conectar').hidden=true;$('#painel').hidden=false;$('#lista').hidden=false;$('#main').classList.add('on');
+  pintarLista();
+}
+function aoDesconectar(){
+  setLink(false);chCmd=null;pend={};
+  $('#painel').hidden=true;$('#lista').hidden=true;$('#main').classList.remove('on');
+  $('#conectar').hidden=false;$('#bt-conectar').textContent='Reconectar';
+  mostrarErro('Conexão perdida. Toque em Reconectar.');
+}
+function aoEstado(e){aplicarEstado(e.target.value)}
+function aplicarEstado(dv){
+  const n=lerEstado(dv);
+  if(pend.rpm!==undefined)n.rpm=+pend.rpm;   // não deixa a notificação puxar o controle enquanto o dedo está nele
+  est=n;
+  const av=$('#aviso');
+  if(n.total!==LISTA.length){av.hidden=false;av.textContent='O firmware tem '+n.total+' sinais e o aplicativo '+LISTA.length+'. Atualize os dois com a mesma versão das tabelas.'}
+  else av.hidden=true;
+  pintar();
+}
+function enviar(p,atraso){Object.assign(pend,p);clearTimeout(tmr);tmr=setTimeout(drenar,atraso||0)}
+async function drenar(){
+  if(enviando||!chCmd)return;
+  enviando=true;
+  try{
+    while(Object.keys(pend).length&&chCmd){
+      const p=pend;pend={};const b=pacote(p);
+      try{await(chCmd.writeValueWithResponse?chCmd.writeValueWithResponse(b):chCmd.writeValue(b))}
+      catch(e){if(!dev||!dev.gatt.connected)break}
+    }
+    if(chEst&&dev&&dev.gatt.connected)aplicarEstado(await chEst.readValue());
+  }catch(e){}
+  finally{enviando=false}
+}
+
+// ---------- interface ----------
+function pintar(){
+  if(!est)return;
+  const s=LISTA.find(x=>x.i===est.id)||{n:'?'};
+  $('#nome').textContent=s.n;
+  const hz=est.rpm/60*est.ticks/Math.max(1,est.voltas);
+  $('#meta').textContent=est.ticks+' ticks por ciclo · '+est.voltas+(est.voltas>1?' voltas':' volta')+' ('+est.voltas*360+'°) · '+Math.round(hz)+' ticks/s';
+  const r=$('#rpm');r.max=est.rpmMax;r.value=est.rpm;
+  $('#rpmv').textContent=est.rpm;
+  const g=$('#go');g.setAttribute('aria-pressed',est.ativo);g.textContent=est.ativo?'Parar':'Gerar sinal';
+  document.querySelectorAll('#pres .bt').forEach(b=>b.classList.toggle('on',+b.dataset.r===est.rpm));
+  const p=$('#param');
+  if(est.id===4){p.hidden=false;p.innerHTML=step('dentes','Dentes',est.dentes)+step('folgas','Falhas',est.folgas)}
+  else if(est.id===5){p.hidden=false;p.innerHTML=step('pulsos','Pulsos por volta',est.pulsos)}
+  else p.hidden=true;
+  document.querySelectorAll('#itens button').forEach(b=>b.classList.toggle('sel',+b.dataset.id===est.id));
+  const key=[est.id,est.dentes,est.folgas,est.pulsos].join();
+  if(key!==formaKey){formaKey=key;forma=formaLocal(est.id,est.dentes,est.folgas,est.pulsos);desenhar()}
+}
+function step(k,t,v){return '<div class="step"><label>'+t+'</label><button class="bt" data-k="'+k+'" data-d="-1" aria-label="Menos '+t+'">−</button><output>'+v+'</output><button class="bt" data-k="'+k+'" data-d="1" aria-label="Mais '+t+'">+</button></div>'}
+
+function desenhar(){
+  if(!forma)return;
+  const T=forma.t,V=forma.v,can=CAN.filter(c=>forma.c&c[0]);
+  const lane=46,eixo=22,H=lane*can.length+eixo;
+  const wrap=$('#scroll'),W=Math.max(wrap.clientWidth,Math.ceil(T*3)),cv=$('#cv'),dpr=window.devicePixelRatio||1;
+  cv.style.width=W+'px';cv.style.height=H+'px';cv.width=W*dpr;cv.height=H*dpr;
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const css=getComputedStyle(document.documentElement),cor=n=>css.getPropertyValue(n).trim();
+  $('#rot').innerHTML=can.map(c=>'<div style="height:'+lane+'px;color:'+cor(c[2])+'">'+c[1]+'</div>').join('')+'<div style="height:'+eixo+'px"></div>';
+  g.font='600 12px system-ui';g.textBaseline='middle';
+  for(let r=0;r<=V;r++){
+    const x=Math.round(r/V*W)+(r===V?-1:0);
+    g.strokeStyle=cor('--line');g.setLineDash(r===0||r===V?[]:[4,4]);g.lineWidth=1;
+    g.beginPath();g.moveTo(x+.5,0);g.lineTo(x+.5,H-eixo);g.stroke();
+    if(r<V){g.fillStyle=cor('--mute');g.fillText(r*360+'°',x+4,H-eixo/2)}
+  }
+  g.setLineDash([]);
+  const d=[];for(let k=0;k<T;k++)d.push(parseInt(forma.d[k],16));
+  can.forEach((c,i)=>{
+    const y1=i*lane+10,y0=i*lane+lane-10;
+    g.strokeStyle=cor(c[2]);g.lineWidth=1.6;g.lineJoin='miter';g.beginPath();
+    for(let k=0;k<T;k++){
+      const y=(d[k]&c[0])?y1:y0,xa=k/T*W,xb=(k+1)/T*W;
+      if(k===0)g.moveTo(xa,y);else g.lineTo(xa,y);
+      g.lineTo(xb,y);
+    }
+    g.stroke();
+  });
+  $('#dica').textContent='Cada divisão tracejada marca uma volta do virabrequim. Deslize para o lado para ver os detalhes.';
+}
+
+function pintarLista(){
+  const f=$('#busca').value.trim().toLowerCase(),gr=['Rodas fônicas (Hall e indutivo)','Veículos com fase (Hall e fase)'];
+  const h=gr.map((t,gi)=>{
+    const it=LISTA.filter(x=>x.g===gi&&x.n.toLowerCase().includes(f));
+    if(!it.length)return'';
+    return '<h3>'+t+'</h3><ul>'+it.map(x=>'<li><button data-id="'+x.i+'"'+(est&&est.id===x.i?' class="sel"':'')+'><span>'+x.n+'</span><small>'+(x.p?'ajustável':x.v+(x.v>1?' voltas':' volta'))+'</small></button></li>').join('')+'</ul>';
+  }).join('');
+  $('#itens').innerHTML=h||'<p class="vazio">Nenhum sinal com esse nome.</p>';
+}
+
+$('#bt-conectar').addEventListener('click',()=>conectar(false));
+$('#bt-todos').addEventListener('click',()=>conectar(true));
+$('#itens').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  enviar({id:b.dataset.id});
+  if(innerWidth<960)scrollTo({top:0,behavior:'smooth'});
+});
+$('#busca').addEventListener('input',pintarLista);
+$('#go').addEventListener('click',()=>{if(est)enviar({ativo:est.ativo?0:1})});
+$('#rpm').addEventListener('input',e=>{$('#rpmv').textContent=e.target.value;enviar({rpm:e.target.value},120)});
+$('#menos').addEventListener('click',()=>est&&enviar({rpm:Math.max(100,est.rpm-50)}));
+$('#mais').addEventListener('click',()=>est&&enviar({rpm:est.rpm+50}));
+$('#pres').innerHTML=PRES.map(r=>'<button class="bt" data-r="'+r+'">'+r+'</button>').join('');
+$('#pres').addEventListener('click',e=>{const b=e.target.closest('button');if(b)enviar({rpm:b.dataset.r})});
+$('#param').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||!est)return;
+  enviar({[b.dataset.k]:lim(est[b.dataset.k]+ +b.dataset.d,b.dataset.k==='folgas'?0:1,60)});
+});
+addEventListener('resize',()=>desenhar());
+if(!navigator.bluetooth)mostrarErro('Este navegador não tem Bluetooth Web. No Android use o Chrome; no iPhone use o aplicativo gratuito Bluefy.');
+</script>
+</body>
+</html>
